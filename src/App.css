@@ -750,6 +750,190 @@
   font-weight: 700;
 }
 
+/* Money */
+.money {
+  font-weight: 700;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: #fff;
+}
+
+.money .cents {
+  font-size: 0.72em;
+  vertical-align: super;
+  line-height: 0;
+}
+
+.money .curr {
+  font-size: 0.72em;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-left: 2px;
+  vertical-align: baseline;
+}
+
+/* Beleggen */
+.beleg-card {
+  margin: 0 14px;
+  background: var(--surface);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.beleg-card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.beleg-head-icon {
+  color: #fff;
+  flex: 0 0 auto;
+}
+
+.beleg-card-head p {
+  font-weight: 600;
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.beleg-list li {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.beleg-list li:last-child {
+  border-bottom: none;
+}
+
+.beleg-list li:active {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.beleg-row-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.spotlight {
+  display: flex;
+  margin: 0 14px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--surface);
+  min-height: 132px;
+  cursor: pointer;
+}
+
+.spotlight-copy {
+  flex: 1.15;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.spotlight-copy > p:last-child {
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.spotlight-media {
+  flex: 0.85;
+  position: relative;
+  background: linear-gradient(160deg, #4a6a7a, #2a4050);
+  overflow: hidden;
+}
+
+.spotlight-person {
+  position: absolute;
+  inset: 8% 8% 0;
+  border-radius: 40% 40% 0 0;
+  background:
+    radial-gradient(circle at 50% 28%, #e8c4a0 0 16%, transparent 17%),
+    linear-gradient(180deg, #6a90a8 0 38%, #c8d8e4 38%);
+}
+
+.plan-row .mk-name.soft {
+  color: var(--text-secondary);
+}
+
+/* Zakelijk */
+.org-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  flex: 0 0 auto;
+}
+
+.org-tabs button {
+  flex: 0 0 auto;
+  padding: 12px 14px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  white-space: nowrap;
+}
+
+.org-tabs button.active {
+  color: #fff;
+  border-bottom-color: var(--blue);
+}
+
+.filter-round {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, #4ec3e8, #1a6bb5);
+}
+
+.mk-icon.patterned {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12) 25%, transparent 25%),
+    linear-gradient(145deg, #2a7ec8, #155a9a);
+  background-size: 10px 10px, auto;
+  color: #fff;
+}
+
+.mk-icon.kbc-card {
+  background: transparent;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.mk-icon.kbc-card svg {
+  width: 44px;
+  height: 44px;
+}
+
+.status-badge {
+  position: absolute;
+  top: -8px;
+  right: 12px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #1a3d28;
+  color: #34c759;
+  font-size: 0.68rem;
+  font-weight: 700;
+  z-index: 1;
+}
+
 .toast {
   position: absolute;
   left: 16px;

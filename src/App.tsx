@@ -121,14 +121,10 @@ export default function App() {
 
             {tab === "mijnkbc" && <MijnKbcScreen notify={notify} />}
             {tab === "aanbod" && <AanbodScreen notify={notify} />}
-            {(tab === "beleggen" || tab === "zakelijk") && (
-              <PlaceholderScreen
-                tab={tab}
-                onBack={() => setTab("start")}
-              />
-            )}
+            {tab === "beleggen" && <BeleggenScreen notify={notify} />}
+            {tab === "zakelijk" && <ZakelijkScreen notify={notify} />}
 
-            {tab === "start" && (
+            {(tab === "start" || tab === "zakelijk") && (
               <button className="fab" aria-label="Overschrijving" onClick={() => notify("Nieuwe overschrijving")}>
                 <TransferIcon />
               </button>
@@ -517,20 +513,235 @@ function AanbodScreen({ notify }: { notify: (m: string) => void }) {
   );
 }
 
-function PlaceholderScreen({ tab, onBack }: { tab: TabId; onBack: () => void }) {
-  const title = tab === "beleggen" ? "Beleggen" : "Zakelijk";
+const zakelijkOrgs = ["Alle", "UGENT SAILING VZW", "CENEKA VZW"] as const;
+
+const zakelijkAccounts = [
+  {
+    id: "z1",
+    org: "UGENT SAILING VZW",
+    iban: "BE59 7390 2508 6726",
+    amount: "1 747,98",
+    type: "current" as const,
+  },
+  {
+    id: "z2",
+    org: "CENEKA VZW",
+    iban: "BE69 7350 1234 5678",
+    amount: "0,00",
+    type: "current" as const,
+  },
+  {
+    id: "z3",
+    org: "CENEKA VZW",
+    iban: "BE23 7441 0299 4791",
+    amount: "120,00",
+    type: "savings" as const,
+  },
+  {
+    id: "z4",
+    org: "UGENT SAILING VZW",
+    iban: "BE63 7490 2812 2608",
+    amount: "0,00",
+    type: "savings" as const,
+  },
+];
+
+const zakelijkCards = [
+  { id: "zc1", name: "AERTS ROBIN", last4: "2033", badge: "Net geactiveerd" as string | null },
+  { id: "zc2", name: "BAERT JORIEN", last4: "8841", badge: null },
+  { id: "zc3", name: "VERBINNEN ANAË", last4: "1190", badge: null },
+];
+
+const beleggenProducts = [
+  {
+    id: "b1",
+    title: "UGENT SAILING VZW",
+    subtitle: "UGENT SAILING VZW",
+    amount: "0,00",
+    product: "KBC-Spaarrekening PLUS",
+    iban: "BE63 7490 2812 2608",
+  },
+  {
+    id: "b2",
+    title: "CENEKA VZW",
+    subtitle: "CENEKA VZW",
+    amount: "29 452,25",
+    product: "KBC-Spaarrekening PLUS",
+    iban: "BE23 7441 0299 4791",
+  },
+];
+
+function Money({ value }: { value: string }) {
+  const [whole, cents] = value.split(",");
+  return (
+    <span className="money">
+      {whole}
+      <span className="cents">,{cents}</span>
+      <span className="curr"> EUR</span>
+    </span>
+  );
+}
+
+function BeleggenScreen({ notify }: { notify: (m: string) => void }) {
   return (
     <>
       <header className="top-bar page-bar">
-        <div className="circle-btn ghost" />
-        <h1 className="page-title">{title}</h1>
-        <div className="page-actions" />
-      </header>
-      <main className="scroll placeholder">
-        <p>Deze rubriek volgt later in de replica.</p>
-        <button className="back-btn" onClick={onBack}>
-          Terug naar Start
+        <button className="circle-btn" aria-label="Instellingen" onClick={() => notify("Instellingen")}>
+          <GearIcon />
         </button>
+        <h1 className="page-title">Beleggen</h1>
+        <div className="page-actions">
+          <button className="circle-btn" aria-label="Meldingen" onClick={() => notify("Meldingen")}>
+            <BellIcon />
+            <span className="red-dot" />
+          </button>
+          <button className="kate-round" aria-label="Kate" onClick={() => notify("Kate")}>
+            <KateMark />
+          </button>
+        </div>
+      </header>
+
+      <main className="scroll page-scroll">
+        <section className="mk-section">
+          <article className="beleg-card">
+            <div className="beleg-card-head">
+              <span className="beleg-head-icon">
+                <InvestToolsIcon />
+              </span>
+              <p>Spaar- en beleggingsproducten van anderen</p>
+            </div>
+            <ul className="beleg-list">
+              {beleggenProducts.map((p) => (
+                <li key={p.id} onClick={() => notify(p.title)}>
+                  <div className="beleg-row-top">
+                    <div>
+                      <p className="mk-name">{p.title}</p>
+                      <p className="mk-sub">{p.subtitle}</p>
+                    </div>
+                    <Money value={p.amount} />
+                  </div>
+                  <p className="mk-sub">{p.product}</p>
+                  <p className="mk-sub">{p.iban}</p>
+                </li>
+              ))}
+            </ul>
+          </article>
+        </section>
+
+        <section className="mk-section">
+          <div className="section-row">
+            <h2>In de kijker</h2>
+          </div>
+          <article className="spotlight" onClick={() => notify("Langetermijnsparen")}>
+            <div className="spotlight-copy">
+              <p className="feed-title kate-label">
+                <KateMark tiny /> Kate tip
+              </p>
+              <p>Spaar voor je pensioen en pluk nu al de vruchten met langetermijnsparen.</p>
+            </div>
+            <div className="spotlight-media" aria-hidden>
+              <div className="spotlight-person" />
+            </div>
+          </article>
+        </section>
+
+        <section className="mk-section">
+          <div className="section-row">
+            <h2>Beleggingsplan</h2>
+          </div>
+          <button className="mk-row plan-row" onClick={() => notify("Beleggingsplan")}>
+            <span className="mk-icon blue">
+              <ChartIcon />
+            </span>
+            <span className="mk-meta">
+              <span className="mk-name soft">
+                Je hebt nog geen beleggingsplan. Wil je elke maand een bedrag beleggen?
+              </span>
+            </span>
+          </button>
+        </section>
+
+        <div className="scroll-pad" />
+      </main>
+    </>
+  );
+}
+
+function ZakelijkScreen({ notify }: { notify: (m: string) => void }) {
+  const [org, setOrg] = useState<(typeof zakelijkOrgs)[number]>("Alle");
+  const filtered = zakelijkAccounts.filter((a) => org === "Alle" || a.org === org);
+
+  return (
+    <>
+      <header className="top-bar page-bar">
+        <button className="circle-btn" aria-label="Instellingen" onClick={() => notify("Instellingen")}>
+          <GearIcon />
+        </button>
+        <h1 className="page-title">Zakelijk</h1>
+        <div className="page-actions">
+          <button className="circle-btn" aria-label="Meldingen" onClick={() => notify("Meldingen")}>
+            <BellIcon />
+            <span className="red-dot" />
+          </button>
+          <button className="filter-round" aria-label="Filter" onClick={() => notify("Filter")}>
+            <SlidersIcon />
+          </button>
+        </div>
+      </header>
+
+      <div className="org-tabs">
+        {zakelijkOrgs.map((o) => (
+          <button key={o} className={org === o ? "active" : ""} onClick={() => setOrg(o)}>
+            {o}
+          </button>
+        ))}
+      </div>
+
+      <main className="scroll page-scroll">
+        <section className="mk-section">
+          <div className="section-row">
+            <h2>Rekeningen</h2>
+            <button className="nieuw" onClick={() => notify("Nieuwe rekening")}>
+              <span className="nieuw-plus">+</span> Nieuw
+            </button>
+          </div>
+          {filtered.map((a) => (
+            <button key={a.id} className="mk-row" onClick={() => notify(a.org)}>
+              <span className="mk-icon patterned">
+                {a.type === "current" ? <WalletIcon /> : <PiggyIcon />}
+              </span>
+              <span className="mk-meta">
+                <span className="mk-name">{a.org}</span>
+                <span className="mk-sub">{a.iban}</span>
+              </span>
+              <Money value={a.amount} />
+            </button>
+          ))}
+        </section>
+
+        <section className="mk-section">
+          <div className="section-row">
+            <h2>Betaalmiddelen</h2>
+            <button className="nieuw" onClick={() => notify("Nieuw betaalmiddel")}>
+              <span className="nieuw-plus">+</span> Nieuw
+            </button>
+          </div>
+          {zakelijkCards.map((c) => (
+            <button key={c.id} className={`mk-row ${c.badge ? "has-badge" : ""}`} onClick={() => notify(c.name)}>
+              {c.badge && <span className="status-badge">{c.badge}</span>}
+              <span className="mk-icon kbc-card">
+                <KbcSailIcon />
+              </span>
+              <span className="mk-meta">
+                <span className="mk-name">KBC-Debetkaart Business</span>
+                <span className="mk-sub">{c.name}</span>
+                <span className="mk-sub">**** {c.last4}</span>
+              </span>
+            </button>
+          ))}
+        </section>
+
+        <div className="scroll-pad" />
       </main>
     </>
   );
@@ -823,6 +1034,44 @@ function BatteryIcon() {
       <rect x="0.5" y="0.5" width="23" height="13" rx="3" stroke="currentColor" />
       <rect x="2.5" y="2.5" width="8" height="9" rx="1.5" fill="currentColor" />
       <path d="M25 4.5v5a2 2 0 0 0 0-5Z" fill="currentColor" />
+    </svg>
+  );
+}
+
+function InvestToolsIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" strokeLinecap="round" />
+      <circle cx="17" cy="7" r="2.2" fill="#00aeef" stroke="none" />
+    </svg>
+  );
+}
+
+function ChartIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.7">
+      <path d="M4 19V5M4 19h16" strokeLinecap="round" />
+      <path d="M8 15v-4M12 15V8M16 15v-6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function SlidersIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8">
+      <path d="M4 8h10M18 8h2M4 16h2M10 16h10M14 5v6M8 13v6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function KbcSailIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <rect width="32" height="32" rx="6" fill="#fff" />
+      <rect y="22" width="32" height="10" fill="#ffcc00" />
+      <path d="M8 22C10 12 14 6 16 4c2 2 6 8 8 18H8Z" fill="#0077c8" />
+      <path d="M16 4c1.5 3 4 9 5.5 18H16V4Z" fill="#00aeef" />
     </svg>
   );
 }
