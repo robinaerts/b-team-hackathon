@@ -346,29 +346,6 @@ export const PREFERENCE_QUESTIONS: Questionnaire[] = [
     ],
   },
   {
-    id: "pref-contact",
-    kind: "preference",
-    question: "Hear from us…",
-    subtitle: "How often should Kate reach out?",
-    chips: [
-      {
-        id: "urgent",
-        label: "Only urgent",
-        action: { type: "tab", tab: "mijnkbc", message: "Alerts limited to urgent — review notification settings" },
-      },
-      {
-        id: "weekly",
-        label: "Weekly",
-        action: { type: "tab", tab: "aanbod", message: "Weekly digest on — peek this week's Aanbod" },
-      },
-      {
-        id: "anytime",
-        label: "Anytime",
-        action: { type: "flow", flow: "mobility", message: "Full Kate tips on — including Kate Coins" },
-      },
-    ],
-  },
-  {
     id: "pref-esg",
     kind: "preference",
     question: "Invest sustainably?",
@@ -505,7 +482,6 @@ export function answersToModelFeatures(answers: StoredAnswer[]): Record<string, 
 
   if (byId["pref-goal"]) feat.money_goal = byId["pref-goal"].chipId;
   if (byId["pref-guidance"]) feat.guidance_style = byId["pref-guidance"].chipId;
-  if (byId["pref-contact"]) feat.contact_pref = byId["pref-contact"].chipId;
   if (byId["pref-esg"]) feat.sustainable_invest = byId["pref-esg"].chipId === "yes";
 
   const pulses = answers.filter((a) => a.kind === "pulse");
