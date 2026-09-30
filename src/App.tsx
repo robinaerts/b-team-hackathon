@@ -2,6 +2,63 @@ import { useEffect, useRef, useState, type ReactElement, type RefObject } from "
 import "./App.css";
 
 type TabId = "start" | "mijnkbc" | "beleggen" | "zakelijk" | "aanbod";
+type HubId = "accounts" | "myhome";
+
+const homeListings = [
+  {
+    id: "h1",
+    city: "Oostende",
+    price: "289 000,00",
+    tag: "Residentie vastgoed",
+    epc: "E",
+    epcColor: "#e67e22",
+    specs: [154, 340, 2, 2, 0],
+    tone: "house",
+  },
+  {
+    id: "h2",
+    city: "Oostende",
+    price: "345 000,00",
+    tag: "Appartement",
+    epc: "C",
+    epcColor: "#f1c40f",
+    specs: [98, 0, 2, 1, 1],
+    tone: "interior",
+  },
+  {
+    id: "h3",
+    city: "Brugge",
+    price: "425 000,00",
+    tag: "Rijhuis",
+    epc: "D",
+    epcColor: "#f39c12",
+    specs: [168, 210, 3, 2, 1],
+    tone: "brick",
+  },
+];
+
+const homeDiscover = [
+  {
+    id: "d1",
+    title: "Brandverzekering",
+    body: "Verzeker je tegen de financiële gevolgen van schade aan je woning en de inhoud ervan.",
+    icon: "flame" as const,
+  },
+  {
+    id: "d2",
+    title: "Bereken je renovatiekost",
+    body: "Bekijk hoeveel de werken die je wilt uitvoeren aan je woning je zullen kosten.",
+    icon: "reno" as const,
+  },
+  {
+    id: "d3",
+    title: "Maak je woning energiezuiniger",
+    body: "Zonnepanelen, een warmtepomp, isolatie... Bekijk hoe je geld kunt besparen.",
+    icon: "energy" as const,
+  },
+];
+
+const homePlanTabs = ["Kopen", "Verbouwen", "Verkopen", "Verzekeren"] as const;
 
 const accounts = [
   {
@@ -74,6 +131,7 @@ type ForYouItem = (typeof forYou)[number];
 
 export default function App() {
   const [tab, setTab] = useState<TabId>("start");
+  const [hub, setHub] = useState<HubId>("accounts");
   const [showPayments, setShowPayments] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [time, setTime] = useState("19:11");
@@ -101,14 +159,24 @@ export default function App() {
 
   const notify = (msg: string) => setToast(msg);
 
+  const goTab = (next: TabId) => {
+    setTab(next);
+    if (next !== "start") setHub("accounts");
+  };
+
+  const openMyHome = () => {
+    setTab("start");
+    setHub("myhome");
+  };
+
   return (
     <div className="stage">
       <div className="phone">
         <div className="phone-bezel">
-          <div className="phone-screen">
-            <StatusBar time={time} battery={tab === "start" ? 24 : 23} />
+          <div className={`phone-screen ${hub === "myhome" && tab === "start" ? "myhome-mode" : ""}`}>
+            <StatusBar time={time} battery={tab === "start" ? 21 : 23} blue={hub === "myhome" && tab === "start"} />
 
-            {tab === "start" && (
+            {tab === "start" && hub === "accounts" && (
               <StartScreen
                 carouselRef={carouselRef}
                 showPayments={showPayments}
@@ -116,21 +184,27 @@ export default function App() {
                 forYou={forYou.filter((f) => !dismissed.includes(f.id))}
                 onDismiss={(id) => setDismissed((d) => [...d, id])}
                 notify={notify}
+                hub={hub}
+                setHub={setHub}
               />
             )}
 
+            {tab === "start" && hub === "myhome" && (
+              <MyHomeScreen notify={notify} hub={hub} setHub={setHub} />
+            )}
+
             {tab === "mijnkbc" && <MijnKbcScreen notify={notify} />}
-            {tab === "aanbod" && <AanbodScreen notify={notify} />}
+            {tab === "aanbod" && <AanbodScreen notify={notify} onOpenMyHome={openMyHome} />}
             {tab === "beleggen" && <BeleggenScreen notify={notify} />}
             {tab === "zakelijk" && <ZakelijkScreen notify={notify} />}
 
-            {(tab === "start" || tab === "zakelijk") && (
+            {((tab === "start" && hub === "accounts") || tab === "zakelijk") && (
               <button className="fab" aria-label="Overschrijving" onClick={() => notify("Nieuwe overschrijving")}>
                 <TransferIcon />
               </button>
             )}
 
-            <BottomNav tab={tab} setTab={setTab} />
+            <BottomNav tab={tab} setTab={goTab} onStartAccounts={() => setHub("accounts")} />
 
             {toast && <div className="toast">{toast}</div>}
           </div>
@@ -140,9 +214,9 @@ export default function App() {
   );
 }
 
-function StatusBar({ time, battery }: { time: string; battery: number }) {
+function StatusBar({ time, battery, blue }: { time: string; battery: number; blue?: boolean }) {
   return (
-    <div className="status-bar">
+    <div className={`status-bar ${blue ? "status-blue" : ""}`}>
       <span className="status-time">{time}</span>
       <div className="status-right">
         <SignalIcon />
@@ -154,6 +228,35 @@ function StatusBar({ time, battery }: { time: string; battery: number }) {
   );
 }
 
+function HubChips({ hub, setHub }: { hub: HubId; setHub: (h: HubId) => void }) {
+  return (
+    <div className={`chips ${hub === "myhome" ? "chips-home" : ""}`}>
+      <button
+        className={`chip ${hub === "accounts" ? "active" : ""}`}
+        aria-label="Rekeningen"
+        onClick={() => setHub("accounts")}
+      >
+        <WalletIcon />
+      </button>
+      <button className="chip" onClick={() => setHub("accounts")}>
+        <NewsIcon />
+        MyNWS
+      </button>
+      <button
+        className={`chip ${hub === "myhome" ? "active-home" : ""}`}
+        onClick={() => setHub("myhome")}
+      >
+        <HomeIcon />
+        MyHome
+      </button>
+      <button className="chip" onClick={() => setHub("accounts")}>
+        <SignIcon />
+        MyMobility
+      </button>
+    </div>
+  );
+}
+
 function StartScreen({
   carouselRef,
   showPayments,
@@ -161,6 +264,8 @@ function StartScreen({
   forYou: items,
   onDismiss,
   notify,
+  hub,
+  setHub,
 }: {
   carouselRef: RefObject<HTMLDivElement | null>;
   showPayments: boolean;
@@ -168,6 +273,8 @@ function StartScreen({
   forYou: ForYouItem[];
   onDismiss: (id: string) => void;
   notify: (m: string) => void;
+  hub: HubId;
+  setHub: (h: HubId) => void;
 }) {
   return (
     <>
@@ -190,23 +297,7 @@ function StartScreen({
       </header>
 
       <main className="scroll">
-        <div className="chips">
-          <button className="chip active" aria-label="Rekeningen">
-            <WalletIcon />
-          </button>
-          <button className="chip" onClick={() => notify("MyNWS")}>
-            <NewsIcon />
-            MyNWS
-          </button>
-          <button className="chip" onClick={() => notify("MyHome")}>
-            <HomeIcon />
-            MyHome
-          </button>
-          <button className="chip" onClick={() => notify("MyMobility")}>
-            <SignIcon />
-            MyMobility
-          </button>
-        </div>
+        <HubChips hub={hub} setHub={setHub} />
 
         <div className="account-rail" ref={carouselRef}>
           {accounts.map((a) => (
@@ -234,6 +325,10 @@ function StartScreen({
               </div>
             </article>
           ))}
+          <button className="acct-card edit-end" onClick={() => notify("Edit favourites")}>
+            <span className="plus">+</span>
+            <span>Favorieten</span>
+          </button>
         </div>
 
         <button className="show-payments" onClick={() => setShowPayments((v) => !v)}>
@@ -301,6 +396,200 @@ function StartScreen({
             ))}
           </div>
         </section>
+
+        <div className="scroll-pad" />
+      </main>
+    </>
+  );
+}
+
+function MyHomeScreen({
+  notify,
+  hub,
+  setHub,
+}: {
+  notify: (m: string) => void;
+  hub: HubId;
+  setHub: (h: HubId) => void;
+}) {
+  const [planTab, setPlanTab] = useState<(typeof homePlanTabs)[number]>("Kopen");
+
+  return (
+    <>
+      <div className="myhome-header">
+        <header className="top-bar start-bar home-bar">
+          <button className="circle-btn home-circle" aria-label="Instellingen" onClick={() => notify("Instellingen")}>
+            <GearIcon />
+          </button>
+          <div className="search-pill home-search" onClick={() => notify("Kate openen")}>
+            <span>Hoe kan ik je helpen?</span>
+            <span className="kate-chip home-kate">
+              <KateMark small />
+              Kate
+            </span>
+          </div>
+          <button className="circle-btn home-circle" aria-label="Meldingen" onClick={() => notify("Meldingen")}>
+            <BellIcon />
+            <span className="red-dot" />
+          </button>
+        </header>
+        <HubChips hub={hub} setHub={setHub} />
+      </div>
+
+      <main className="scroll home-scroll">
+        <article className="home-hero">
+          <div className="home-bubbles" aria-hidden>
+            <span className="bubble b-family"><FamilyIcon /></span>
+            <span className="bubble b-keys"><KeysIcon /></span>
+            <span className="bubble b-main"><HomeIconLarge /></span>
+            <span className="bubble b-bed"><BedIcon /></span>
+            <span className="bubble b-pin"><PinIcon /></span>
+            <span className="bubble b-tree"><TreeIcon /></span>
+            <span className="bubble b-cat"><CatIcon /></span>
+          </div>
+          <h2>Waar woon je?</h2>
+          <p>We willen je graag beter leren kennen.</p>
+          <button className="home-cta" onClick={() => notify("Woning toevoegen")}>
+            Woning toevoegen
+          </button>
+        </article>
+
+        <section className="mk-section">
+          <div className="section-row">
+            <h2>Start je woonplannen</h2>
+            <button className="link" onClick={() => notify("Bekijk meer")}>
+              Bekijk meer
+            </button>
+          </div>
+
+          <div className="plan-tabs">
+            {homePlanTabs.map((t) => (
+              <button key={t} className={planTab === t ? "active" : ""} onClick={() => setPlanTab(t)}>
+                {t}
+              </button>
+            ))}
+          </div>
+
+          {planTab === "Kopen" ? (
+            <div className="timeline">
+              <div className="tl-item">
+                <span className="tl-dot" />
+                <p className="tl-label">Voor je begint</p>
+                <button className="tl-card" onClick={() => notify("Budget berekenen")}>
+                  <span className="tl-icon">
+                    <CoinsIcon />
+                  </span>
+                  <span className="tl-copy">
+                    <span className="mk-name">Wat is je budget?</span>
+                    <span className="mk-sub">Aankoopprijs, belasting, notaris,... Bekijk de totaalkost van je woonplan.</span>
+                  </span>
+                  <span className="arrow-btn">
+                    <ArrowRightIcon />
+                  </span>
+                </button>
+              </div>
+
+              <div className="tl-item">
+                <span className="tl-dot" />
+                <p className="tl-label">Vind hier een huis of appartement</p>
+                <button className="criteria-link" onClick={() => notify("Zoekcriteria")}>
+                  <SearchHomeIcon />
+                  Zoekcriteria aanpassen
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="plan-empty">
+              <p>Inhoud voor “{planTab}” volgt in deze replica.</p>
+            </div>
+          )}
+        </section>
+
+        {planTab === "Kopen" && (
+          <>
+            <section className="mk-section">
+              <div className="listing-rail">
+                {homeListings.map((l) => (
+                  <article key={l.id} className="listing-card" onClick={() => notify(`${l.city} — ${l.price} EUR`)}>
+                    <div className={`listing-photo ${l.tone}`}>
+                      <span className="listing-tag">{l.tag}</span>
+                      <span className="epc" style={{ background: l.epcColor }}>
+                        EPC {l.epc}
+                      </span>
+                    </div>
+                    <div className="listing-body">
+                      <p className="listing-city">{l.city}</p>
+                      <p className="listing-price">
+                        {l.price} <span>EUR</span>
+                      </p>
+                      <div className="listing-specs">
+                        {l.specs.map((n, i) => (
+                          <div key={i}>
+                            <SpecIcon i={i} />
+                            <span>{n}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        className="link"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          notify("Bekijken");
+                        }}
+                      >
+                        Bekijken
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+              <div className="immo-credit">
+                <span className="immo-logo">immo scoop</span>
+                <span>Aangeboden door immoscoop</span>
+              </div>
+            </section>
+
+            <section className="mk-section">
+              <p className="section-bullet">Bekijk hoeveel je kunt lenen</p>
+              <button className="tl-card mortgage" onClick={() => notify("Hypotheek simuleren")}>
+                <span className="tl-icon">
+                  <HandCoinsIcon />
+                </span>
+                <span className="tl-copy">
+                  <span className="mk-name">Lenen voor je woning</span>
+                  <span className="mk-sub">Simuleer je hypothecaire lening. Je kunt ze ook digitaal afsluiten.</span>
+                </span>
+                <span className="arrow-btn">
+                  <ArrowRightIcon />
+                </span>
+              </button>
+            </section>
+
+            <section className="mk-section">
+              <div className="section-row">
+                <h2>Ontdek meer rond kopen</h2>
+              </div>
+              <ul className="discover-list">
+                {homeDiscover.map((d) => (
+                  <li key={d.id}>
+                    <button onClick={() => notify(d.title)}>
+                      <span className="discover-icon">
+                        {d.icon === "flame" && <FlameIcon />}
+                        {d.icon === "reno" && <RenoIcon />}
+                        {d.icon === "energy" && <EnergyDocIcon />}
+                      </span>
+                      <span className="tl-copy">
+                        <span className="mk-name">{d.title}</span>
+                        <span className="mk-sub">{d.body}</span>
+                      </span>
+                      <ChevronRightIcon />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </>
+        )}
 
         <div className="scroll-pad" />
       </main>
@@ -416,7 +705,13 @@ function MijnKbcScreen({ notify }: { notify: (m: string) => void }) {
   );
 }
 
-function AanbodScreen({ notify }: { notify: (m: string) => void }) {
+function AanbodScreen({
+  notify,
+  onOpenMyHome,
+}: {
+  notify: (m: string) => void;
+  onOpenMyHome: () => void;
+}) {
   return (
     <>
       <header className="top-bar page-bar">
@@ -494,7 +789,11 @@ function AanbodScreen({ notify }: { notify: (m: string) => void }) {
           </div>
           <div className="tile-rail">
             {themes.map((t) => (
-              <button key={t.id} className="theme-tile" onClick={() => notify(t.label)}>
+              <button
+                key={t.id}
+                className="theme-tile"
+                onClick={() => (t.label === "MyHome" ? onOpenMyHome() : notify(t.label))}
+              >
                 <span className="theme-icon" style={{ background: t.color }}>
                   {t.icon === "sign" && <SignIcon />}
                   {t.icon === "home" && <HomeIcon />}
@@ -747,7 +1046,15 @@ function ZakelijkScreen({ notify }: { notify: (m: string) => void }) {
   );
 }
 
-function BottomNav({ tab, setTab }: { tab: TabId; setTab: (t: TabId) => void }) {
+function BottomNav({
+  tab,
+  setTab,
+  onStartAccounts,
+}: {
+  tab: TabId;
+  setTab: (t: TabId) => void;
+  onStartAccounts: () => void;
+}) {
   const items: { id: TabId; label: string; Icon: () => ReactElement }[] = [
     { id: "start", label: "Start", Icon: WalletIcon },
     { id: "mijnkbc", label: "Mijn KBC", Icon: ListIcon },
@@ -758,7 +1065,14 @@ function BottomNav({ tab, setTab }: { tab: TabId; setTab: (t: TabId) => void }) 
   return (
     <nav className="bottom-nav">
       {items.map(({ id, label, Icon }) => (
-        <button key={id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}>
+        <button
+          key={id}
+          className={tab === id ? "active" : ""}
+          onClick={() => {
+            setTab(id);
+            if (id === "start") onStartAccounts();
+          }}
+        >
           <span className="nav-icon">
             <Icon />
           </span>
@@ -1072,6 +1386,158 @@ function KbcSailIcon() {
       <rect y="22" width="32" height="10" fill="#ffcc00" />
       <path d="M8 22C10 12 14 6 16 4c2 2 6 8 8 18H8Z" fill="#0077c8" />
       <path d="M16 4c1.5 3 4 9 5.5 18H16V4Z" fill="#00aeef" />
+    </svg>
+  );
+}
+
+function HomeIconLarge() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.6">
+      <path d="m4 11 8-7 8 7v8a1 1 0 0 1-1 1h-5v-5H10v5H5a1 1 0 0 1-1-1v-8Z" />
+    </svg>
+  );
+}
+
+function FamilyIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.6">
+      <circle cx="9" cy="8" r="3" />
+      <circle cx="16" cy="9" r="2.5" />
+      <path d="M3 19c1.5-3 4-4.5 6-4.5S13.5 16 15 19M14 14.5c1.5-.3 3 .5 4 2.5" />
+    </svg>
+  );
+}
+
+function KeysIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.7">
+      <circle cx="8" cy="14" r="4" />
+      <path d="M11.5 11.5 20 3M17 6l2.5 2.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function BedIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.7">
+      <path d="M3 18V9h8a4 4 0 0 1 4 4v5M3 14h18v4M21 14v-2a2 2 0 0 0-2-2h-4" />
+    </svg>
+  );
+}
+
+function PinIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.7">
+      <path d="M12 21s6-5.2 6-11a6 6 0 1 0-12 0c0 5.8 6 11 6 11Z" />
+      <circle cx="12" cy="10" r="2" />
+    </svg>
+  );
+}
+
+function TreeIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.7">
+      <path d="M12 22v-7M8 15c-3-1-4-4-2-7 3 0 4 2 6 2s3-2 6-2c2 3 1 6-2 7" />
+    </svg>
+  );
+}
+
+function CatIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.7">
+      <path d="M5 10 3 4l5 3M19 10l2-6-5 3" />
+      <circle cx="12" cy="13" r="6" />
+      <circle cx="10" cy="12" r="0.8" fill="#fff" stroke="none" />
+      <circle cx="14" cy="12" r="0.8" fill="#fff" stroke="none" />
+    </svg>
+  );
+}
+
+function CoinsIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.5">
+      <ellipse cx="10" cy="8" rx="6" ry="3" />
+      <path d="M4 8v4c0 1.7 2.7 3 6 3s6-1.3 6-3V8" />
+      <path d="M14 11c2.5.3 4 1.4 4 2.8v3c0 1.7-2.2 3-5 3-2 0-3.7-.7-4.5-1.8" />
+    </svg>
+  );
+}
+
+function HandCoinsIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.5">
+      <path d="M8 13c0-2 1.5-3 3.5-3H18v2.5c0 1.5-1 2.5-2.5 2.5H14" />
+      <path d="M4 15.5c0-1.5 1-2.5 2.5-2.5H10v5.5H6.5C5 18.5 4 17.5 4 15.5Z" />
+      <circle cx="16" cy="7" r="3" />
+      <circle cx="19" cy="9" r="2.5" />
+    </svg>
+  );
+}
+
+function ArrowRightIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2">
+      <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ChevronRightIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="m9 6 6 6-6 6" />
+    </svg>
+  );
+}
+
+function SearchHomeIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+      <path d="m5 11 7-6 7 6v7a1 1 0 0 1-1 1h-4v-4H10v4H6a1 1 0 0 1-1-1v-7Z" />
+      <circle cx="17.5" cy="17.5" r="3" />
+      <path d="m20 20 1.5 1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function SpecIcon({ i }: { i: number }) {
+  const icons = [
+    <path key="a" d="M4 20V10l8-6 8 6v10H4Z" />,
+    <path key="b" d="M4 18h16M6 18V8h12v10M9 12h6" />,
+    <path key="c" d="M4 18V10h7a3 3 0 0 1 3 3v5M4 14h16v4" />,
+    <path key="d" d="M5 12V6h6v6M7 15h10v4H7zM11 12v3" />,
+    <path key="e" d="M4 16h16v3H4zM6 16V9l4 2 4-2v7" />,
+  ];
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      {icons[i]}
+    </svg>
+  );
+}
+
+function FlameIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00aeef" strokeWidth="1.6">
+      <path d="M12 3c2 4-1 5 1 8 1.5 2.2 4 2.5 4 6a5 5 0 0 1-10 0c0-3 2-4.5 3-6.5C11 8 10 6 12 3Z" />
+    </svg>
+  );
+}
+
+function RenoIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00aeef" strokeWidth="1.6">
+      <path d="m4 12 8-7 8 7v7H4v-7Z" />
+      <path d="M14 19v-5h-4v5M16 8l3-3 1.5 1.5" />
+    </svg>
+  );
+}
+
+function EnergyDocIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00aeef" strokeWidth="1.6">
+      <path d="M7 3h8l4 4v14H7V3Z" />
+      <path d="M15 3v4h4M10 12h5M10 15h3" />
+      <path d="M9 19c1.5-3 3-4 4.5-4" />
     </svg>
   );
 }

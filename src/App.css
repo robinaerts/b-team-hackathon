@@ -42,6 +42,11 @@
   z-index: 6;
 }
 
+.status-bar.status-blue {
+  background: #1a9fd9;
+  color: #fff;
+}
+
 .status-right {
   display: flex;
   align-items: center;
@@ -188,6 +193,468 @@
   justify-content: center;
   background: #fff;
   color: #111;
+}
+
+.chip.active-home {
+  background: rgba(255, 255, 255, 0.28);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.chips-home .chip {
+  background: rgba(0, 90, 150, 0.45);
+  color: #fff;
+}
+
+.chips-home .chip.active {
+  background: #fff;
+  color: #111;
+}
+
+/* MyHome */
+.phone-screen.myhome-mode {
+  background: #0a0a0a;
+}
+
+.myhome-header {
+  background: linear-gradient(180deg, #1a9fd9 0%, #0077b8 55%, #0069a8 100%);
+  padding-bottom: 8px;
+  flex: 0 0 auto;
+}
+
+.home-bar .home-circle {
+  background: rgba(0, 80, 140, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+.home-search {
+  background: rgba(180, 220, 245, 0.55) !important;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.home-search > span:first-of-type {
+  flex: 1;
+  padding-left: 4px;
+}
+
+.home-kate {
+  background: #fff !important;
+}
+
+.home-scroll {
+  background: #0a0a0a;
+}
+
+.home-hero {
+  margin: 14px 14px 8px;
+  padding: 22px 18px 20px;
+  border-radius: 20px;
+  background: linear-gradient(160deg, #0d1a28 0%, #05080c 100%);
+  text-align: center;
+}
+
+.home-bubbles {
+  position: relative;
+  height: 140px;
+  margin-bottom: 8px;
+}
+
+.bubble {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #1a6bb5;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.b-main {
+  width: 72px;
+  height: 72px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: #0d3d6e;
+  z-index: 2;
+}
+
+.b-family {
+  width: 40px;
+  height: 40px;
+  left: 18%;
+  top: 18%;
+  background: #2a8fd4;
+}
+
+.b-keys {
+  width: 32px;
+  height: 32px;
+  left: 8%;
+  top: 48%;
+  background: #1e6fa8;
+}
+
+.b-bed {
+  width: 36px;
+  height: 36px;
+  right: 16%;
+  top: 14%;
+  background: #2490c8;
+}
+
+.b-pin {
+  width: 30px;
+  height: 30px;
+  right: 10%;
+  top: 52%;
+  background: #1570a8;
+}
+
+.b-tree {
+  width: 34px;
+  height: 34px;
+  left: 28%;
+  bottom: 4%;
+  background: #1a7ab0;
+}
+
+.b-cat {
+  width: 28px;
+  height: 28px;
+  right: 30%;
+  bottom: 8%;
+  background: #2a9ad4;
+}
+
+.home-hero h2 {
+  font-size: 1.45rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.home-hero > p {
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  margin-bottom: 16px;
+}
+
+.home-cta {
+  height: 42px;
+  padding: 0 22px;
+  border-radius: 999px;
+  background: var(--blue);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.plan-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  margin-bottom: 14px;
+}
+
+.plan-tabs button {
+  flex: 0 0 auto;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.plan-tabs button.active {
+  color: #fff;
+  border-bottom-color: var(--blue);
+}
+
+.timeline {
+  position: relative;
+  padding: 0 14px 8px 28px;
+}
+
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 20px;
+  top: 10px;
+  bottom: 20px;
+  width: 0;
+  border-left: 1.5px dashed rgba(0, 174, 239, 0.35);
+}
+
+.tl-item {
+  position: relative;
+  margin-bottom: 18px;
+}
+
+.tl-dot {
+  position: absolute;
+  left: -14px;
+  top: 6px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--blue);
+  box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.2);
+}
+
+.tl-label {
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-bottom: 10px;
+}
+
+.tl-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px;
+  background: var(--surface);
+  border-radius: 14px;
+  text-align: left;
+}
+
+.tl-card.mortgage {
+  width: calc(100% - 28px);
+  margin: 0 14px;
+}
+
+.tl-icon {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+}
+
+.tl-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.arrow-btn {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--blue);
+  display: grid;
+  place-items: center;
+}
+
+.criteria-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--blue);
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 8px 0;
+}
+
+.plan-empty {
+  padding: 24px 16px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.listing-rail {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 0 14px 8px;
+}
+
+.listing-card {
+  flex: 0 0 220px;
+  background: var(--surface);
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.listing-photo {
+  position: relative;
+  height: 120px;
+  background: #2a3a48;
+}
+
+.listing-photo.house {
+  background:
+    linear-gradient(160deg, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.45)),
+    linear-gradient(135deg, #6a8a9a 0%, #3a5568 40%, #8a6a4a 40%, #5a4030 100%);
+}
+
+.listing-photo.interior {
+  background:
+    linear-gradient(160deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.4)),
+    linear-gradient(180deg, #c8b8a0 0 45%, #8a7060 45%);
+}
+
+.listing-photo.brick {
+  background:
+    linear-gradient(160deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.5)),
+    repeating-linear-gradient(90deg, #8a4a3a 0 12px, #7a3a2a 12px 14px);
+}
+
+.listing-tag {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #111;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.epc {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 3px 7px;
+  border-radius: 4px;
+  color: #111;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.listing-body {
+  padding: 12px;
+}
+
+.listing-city {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 2px;
+}
+
+.listing-price {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.listing-price span {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.listing-specs {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  color: var(--text-muted);
+}
+
+.listing-specs div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.immo-credit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 16px 8px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.immo-logo {
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: #5a9fd4;
+  letter-spacing: -0.02em;
+}
+
+.section-bullet {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px 10px;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.section-bullet::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--blue);
+  flex: 0 0 auto;
+}
+
+.discover-list {
+  margin: 0 14px;
+  background: var(--surface);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.discover-list li button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.discover-list li:last-child button {
+  border-bottom: none;
+}
+
+.discover-icon {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+}
+
+.acct-card.edit-end {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  border: 1.5px dashed var(--surface-3);
+  font-weight: 600;
+  font-size: 0.85rem;
+  min-height: 160px;
+}
+
+.acct-card.edit-end .plus {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--surface-2);
+  font-size: 1.3rem;
+  color: var(--blue);
 }
 
 /* Account cards */
