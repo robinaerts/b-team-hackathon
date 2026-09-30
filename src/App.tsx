@@ -1,8 +1,33 @@
 import { useEffect, useRef, useState, type ReactElement, type RefObject } from "react";
+import { createPortal } from "react-dom";
 import "./App.css";
+import { formatTxAmount, recentTransactions } from "./data/transactions";
+import { LoanFlow, ProductFlow } from "./flows/LoanFlow";
+import {
+  answersToModelFeatures,
+  isoWeekKey,
+  loadQuestionnaireStore,
+  saveQuestionnaireStore,
+  type QuestionChip,
+  type Questionnaire,
+  type QuestionnaireStore,
+} from "./questionnaires/catalog";
+import { QuestionnaireModal } from "./questionnaires/QuestionnaireCard";
+import { pickQuestionnaire } from "./questionnaires/select";
+import {
+  fetchRecommendation,
+  getRecommendation,
+  REVENUE_LABELS,
+  type LoanProductId,
+  type Recommendation,
+} from "./recommendations";
 
 type TabId = "start" | "mijnkbc" | "beleggen" | "zakelijk" | "aanbod";
 type HubId = "accounts" | "myhome";
+type ActiveFlow =
+  | { kind: "loan"; product?: LoanProductId }
+  | { kind: "insure" | "save" | "mobility" }
+  | null;
 
 const homeListings = [
   {
@@ -78,7 +103,7 @@ const accounts = [
   {
     id: "business",
     kind: "account" as const,
-    name: "CENEKA VZW",
+    name: "Gertjan VZW",
     balance: "0,00 EUR",
     color: "navy",
   },
@@ -136,7 +161,16 @@ export default function App() {
   const [toast, setToast] = useState<string | null>(null);
   const [time, setTime] = useState("19:11");
   const [dismissed, setDismissed] = useState<string[]>([]);
+  const [activeFlow, setActiveFlow] = useState<ActiveFlow>(null);
+  const [recommendation, setRecommendation] = useState<Recommendation>(() =>
+    getRecommendation(recentTransactions),
+  );
+  const [suggestions, setSuggestions] = useState<Recommendation[]>([]);
+  const [modelLoading, setModelLoading] = useState(true);
+  const [qStore, setQStore] = useState<QuestionnaireStore>(() => loadQuestionnaireStore());
+  const [activeQuestion, setActiveQuestion] = useState<Questionnaire | null>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
+  const sessionCounted = useRef(false);
 
   useEffect(() => {
     const tick = () =>
@@ -157,6 +191,33 @@ export default function App() {
     return () => window.clearTimeout(id);
   }, [toast]);
 
+  // New app open → bump session, pick question
+  useEffect(() => {
+    setQStore((prev) => {
+      if (sessionCounted.current) return prev;
+      sessionCounted.current = true;
+      const next = { ...prev, sessionCount: prev.sessionCount + 1 };
+      saveQuestionnaireStore(next);
+      setActiveQuestion(pickQuestionnaire(recentTransactions, next));
+      return next;
+    });
+  }, []);
+
+  const refreshRecommendation = (store: QuestionnaireStore) => {
+    setModelLoading(true);
+    const feats = answersToModelFeatures(store.answers);
+    fetchRecommendation(recentTransactions, feats).then((recs) => {
+      setSuggestions(recs);
+      setRecommendation(recs[0] ?? getRecommendation(recentTransactions));
+      setModelLoading(false);
+    });
+  };
+
+  useEffect(() => {
+    refreshRecommendation(qStore);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- initial + when answers change via handler
+  }, []);
+
   const notify = (msg: string) => setToast(msg);
 
   const goTab = (next: TabId) => {
@@ -167,6 +228,119 @@ export default function App() {
   const openMyHome = () => {
     setTab("start");
     setHub("myhome");
+  };
+
+  const applyQuestionAction = (chip: QuestionChip) => {
+    const a = chip.action;
+    if ("message" in a && a.message) notify(a.message);
+    switch (a.type) {
+      case "flow":
+        if (a.flow === "loan") {
+          setActiveFlow({ kind: "loan", product: (a.product as LoanProductId) || "hypotheek" });
+        } else {
+          setActiveFlow({ kind: a.flow });
+        }
+        break;
+      case "hub":
+        setTab("start");
+        setHub(a.hub);
+        break;
+      case "tab":
+        goTab(a.tab);
+        break;
+      case "notify":
+        break;
+      case "freeze":
+        if (!a.message) notify("Transfer frozen · contacting you via KBC Live");
+        break;
+      case "support":
+        if (!a.message) notify("Quiet support route opened · Kate will follow up");
+        break;
+      default:
+        break;
+    }
+  };
+
+  const handleQuestionAnswer = (chip: QuestionChip) => {
+    if (!activeQuestion) return;
+    const answer = {
+      questionId: activeQuestion.id,
+      kind: activeQuestion.kind,
+      chipId: chip.id,
+      label: chip.label,
+      answeredAt: new Date().toISOString(),
+      signal: activeQuestion.signal,
+    };
+    setQStore((prev) => {
+      const next: QuestionnaireStore = {
+        ...prev,
+        answers: [...prev.answers.filter((a) => a.questionId !== activeQuestion.id), answer],
+        prefsAsked:
+          activeQuestion.kind === "preference"
+            ? [...new Set([...prev.prefsAsked, activeQuestion.id])]
+            : prev.prefsAsked,
+        lastPulseWeek: activeQuestion.kind === "pulse" ? isoWeekKey() : prev.lastPulseWeek,
+        lastPulseId: activeQuestion.kind === "pulse" ? activeQuestion.id : prev.lastPulseId,
+      };
+      saveQuestionnaireStore(next);
+      refreshRecommendation(next);
+      return next;
+    });
+    applyQuestionAction(chip);
+    setActiveQuestion(null);
+  };
+
+  const handleQuestionSkip = () => {
+    if (!activeQuestion) return;
+    setQStore((prev) => {
+      const next: QuestionnaireStore = {
+        ...prev,
+        dismissedSignals:
+          activeQuestion.kind === "signal"
+            ? [...new Set([...prev.dismissedSignals, activeQuestion.id])]
+            : prev.dismissedSignals,
+        prefsAsked:
+          activeQuestion.kind === "preference"
+            ? [...new Set([...prev.prefsAsked, activeQuestion.id])]
+            : prev.prefsAsked,
+        lastPulseWeek: activeQuestion.kind === "pulse" ? isoWeekKey() : prev.lastPulseWeek,
+        lastPulseId: activeQuestion.kind === "pulse" ? activeQuestion.id : prev.lastPulseId,
+      };
+      saveQuestionnaireStore(next);
+      return next;
+    });
+    setActiveQuestion(null);
+  };
+
+  const handleKaiteCta = (rec: Recommendation) => {
+    switch (rec.cta) {
+      case "myhome":
+        openMyHome();
+        notify(rec.title);
+        break;
+      case "beleggen":
+        goTab("beleggen");
+        notify(rec.title);
+        break;
+      case "zakelijk":
+        goTab("zakelijk");
+        notify(rec.title);
+        break;
+      case "loan":
+        setActiveFlow({ kind: "loan", product: rec.loanProduct });
+        break;
+      case "insure":
+        setActiveFlow({ kind: "insure" });
+        break;
+      case "save":
+        setActiveFlow({ kind: "save" });
+        break;
+      case "mobility":
+        setActiveFlow({ kind: "mobility" });
+        break;
+      default:
+        notify("Vraag het Kate via de zoekbalk");
+    }
   };
 
   return (
@@ -186,11 +360,20 @@ export default function App() {
                 notify={notify}
                 hub={hub}
                 setHub={setHub}
+                recommendation={recommendation}
+                suggestions={suggestions}
+                modelLoading={modelLoading}
+                onKaiteCta={(rec) => handleKaiteCta(rec)}
               />
             )}
 
             {tab === "start" && hub === "myhome" && (
-              <MyHomeScreen notify={notify} hub={hub} setHub={setHub} />
+              <MyHomeScreen
+                notify={notify}
+                hub={hub}
+                setHub={setHub}
+                onOpenLoan={(product) => setActiveFlow({ kind: "loan", product })}
+              />
             )}
 
             {tab === "mijnkbc" && <MijnKbcScreen notify={notify} />}
@@ -205,6 +388,29 @@ export default function App() {
             )}
 
             <BottomNav tab={tab} setTab={goTab} onStartAccounts={() => setHub("accounts")} />
+
+            {activeFlow?.kind === "loan" && (
+              <LoanFlow
+                initialProduct={activeFlow.product}
+                onClose={() => setActiveFlow(null)}
+                onComplete={(msg) => notify(msg)}
+              />
+            )}
+            {activeFlow && activeFlow.kind !== "loan" && (
+              <ProductFlow
+                kind={activeFlow.kind}
+                onClose={() => setActiveFlow(null)}
+                onComplete={(msg) => notify(msg)}
+              />
+            )}
+
+            {activeQuestion && (
+              <QuestionnaireModal
+                question={activeQuestion}
+                onAnswer={handleQuestionAnswer}
+                onSkip={handleQuestionSkip}
+              />
+            )}
 
             {toast && <div className="toast">{toast}</div>}
           </div>
@@ -266,6 +472,10 @@ function StartScreen({
   notify,
   hub,
   setHub,
+  recommendation,
+  suggestions,
+  modelLoading,
+  onKaiteCta,
 }: {
   carouselRef: RefObject<HTMLDivElement | null>;
   showPayments: boolean;
@@ -275,6 +485,10 @@ function StartScreen({
   notify: (m: string) => void;
   hub: HubId;
   setHub: (h: HubId) => void;
+  recommendation: Recommendation;
+  suggestions: Recommendation[];
+  modelLoading: boolean;
+  onKaiteCta: (rec: Recommendation) => void;
 }) {
   return (
     <>
@@ -338,20 +552,24 @@ function StartScreen({
 
         {showPayments && (
           <ul className="payments-preview">
-            <li>
-              <span>Colruyt Leuven</span>
-              <span>−54,32 EUR</span>
-            </li>
-            <li>
-              <span>Loon Acme BV</span>
-              <span className="pos">+2 850,00 EUR</span>
-            </li>
-            <li>
-              <span>Spotify</span>
-              <span>−17,99 EUR</span>
-            </li>
+            {recentTransactions.slice(0, 5).map((tx) => (
+              <li key={tx.id}>
+                <span>
+                  {tx.merchant}
+                  <small className="tx-date">{tx.date}</small>
+                </span>
+                <span className={tx.amount > 0 ? "pos" : ""}>{formatTxAmount(tx.amount)}</span>
+              </li>
+            ))}
           </ul>
         )}
+
+        <KaiteBanner
+          recommendation={recommendation}
+          suggestions={suggestions}
+          modelLoading={modelLoading}
+          onCta={onKaiteCta}
+        />
 
         <section className="voor-jou">
           <div className="section-row">
@@ -403,14 +621,196 @@ function StartScreen({
   );
 }
 
+function KaiteBanner({
+  recommendation,
+  suggestions,
+  modelLoading,
+  onCta,
+}: {
+  recommendation: Recommendation;
+  suggestions: Recommendation[];
+  modelLoading: boolean;
+  onCta: (rec: Recommendation) => void;
+}) {
+  const [shapFor, setShapFor] = useState<Recommendation | null>(null);
+  const products = suggestions.length > 0 ? suggestions : [recommendation];
+  const fromModel = products.some((p) => p.modelSource === "model.joblib");
+
+  return (
+    <section className="kaite-banner" aria-label="kAIte productvoorstellen">
+      <div className="kaite-banner-glow" aria-hidden />
+      <div className="kaite-banner-head">
+        <span className="kaite-brand">
+          <KateMark small />
+          <span className="kaite-name">
+            k<span className="kaite-ai">AI</span>te
+          </span>
+        </span>
+        <span className="kaite-badge">Volgend product</span>
+      </div>
+
+      {modelLoading && <p className="kaite-loading">Model + SHAP laden…</p>}
+
+      <p className="kaite-intro">Op basis van je transacties kan dit als volgende passen:</p>
+
+      <ul className="kaite-products">
+        {products.map((rec, idx) => (
+          <li key={rec.id} className="kaite-product">
+            <div className="kaite-product-main">
+              <div className="kaite-product-top">
+                <span className="kaite-product-rank">{idx + 1}</span>
+                <h3 className="kaite-product-title">{rec.title}</h3>
+                <button
+                  type="button"
+                  className="kaite-info"
+                  aria-label={`Waarom ${rec.title}? (SHAP)`}
+                  title="Waarom dit product? (SHAP)"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShapFor(rec);
+                  }}
+                >
+                  <InfoIcon />
+                </button>
+              </div>
+              <p className="kaite-product-body">{rec.body}</p>
+              {fromModel && rec.modelProbability != null && (
+                <div className="kaite-score">
+                  <span>
+                    Kans <strong>{(rec.modelProbability * 100).toFixed(0)}%</strong>
+                  </span>
+                  {rec.modelLift != null && (
+                    <span>
+                      Lift <strong>×{rec.modelLift.toFixed(1)}</strong>
+                    </span>
+                  )}
+                  <span className="kaite-source">{REVENUE_LABELS[rec.revenueModel]}</span>
+                </div>
+              )}
+              <button className="kaite-cta kaite-cta-sm" onClick={() => onCta(rec)}>
+                {rec.ctaLabel}
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      {!fromModel && !modelLoading && (
+        <p className="kaite-fallback">Rules-engine (API offline) — start de Python-server voor het ML-model.</p>
+      )}
+
+      {recommendation.evidence.length > 0 && (
+        <p className="kaite-evidence">
+          Gebaseerd op o.a. {recommendation.evidence.slice(0, 3).join(", ")}
+        </p>
+      )}
+
+      {shapFor &&
+        createPortal(
+          <ShapExplainSheet recommendation={shapFor} onClose={() => setShapFor(null)} />,
+          document.querySelector(".phone-screen") ?? document.body,
+        )}
+    </section>
+  );
+}
+
+function ShapExplainSheet({
+  recommendation,
+  onClose,
+}: {
+  recommendation: Recommendation;
+  onClose: () => void;
+}) {
+  const drivers = recommendation.shapDrivers ?? [];
+
+  return (
+    <div className="shap-sheet" role="dialog" aria-modal="true" aria-label="SHAP-uitleg">
+      <button className="shap-backdrop" aria-label="Sluiten" onClick={onClose} />
+      <div className="shap-panel">
+        <div className="shap-head">
+          <div>
+            <p className="shap-kicker">SHAP-uitleg</p>
+            <h3>{recommendation.title}</h3>
+          </div>
+          <button className="shap-close" onClick={onClose} aria-label="Sluiten">
+            ×
+          </button>
+        </div>
+
+        <p className="shap-intro">
+          SHAP (SHapley Additive exPlanations) toont welke kenmerken de modelkans voor dit product
+          verhogen of verlagen t.o.v. een gemiddelde klant.
+        </p>
+
+        {recommendation.modelProbability != null && (
+          <p className="shap-scoreline">
+            Modelkans{" "}
+            <strong>{(recommendation.modelProbability * 100).toFixed(1)}%</strong>
+            {recommendation.modelLift != null && (
+              <>
+                {" "}
+                · lift <strong>×{recommendation.modelLift.toFixed(2)}</strong>
+              </>
+            )}
+          </p>
+        )}
+
+        {drivers.length > 0 ? (
+          <ul className="shap-drivers">
+            {drivers.map((d) => {
+              const up = d.effect > 0;
+              return (
+                <li key={d.feature} className={up ? "up" : "down"}>
+                  <div className="shap-driver-top">
+                    <span className="shap-driver-label">{d.label}</span>
+                    <span className={`shap-effect ${up ? "up" : "down"}`}>
+                      {up ? "+" : "−"}
+                      {(Math.abs(d.effect) * 100).toFixed(1)} pp
+                    </span>
+                  </div>
+                  <p className="shap-driver-meta">
+                    Waarde: {d.value} · {up ? "verhoogt" : "verlaagt"} de kans
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="shap-fallback">
+            {recommendation.shapReason
+              ? `Geen SHAP-drivers beschikbaar. Reden: ${recommendation.shapReason}.`
+              : "Geen SHAP-drivers beschikbaar voor deze voorspelling."}
+          </p>
+        )}
+
+        <p className="shap-foot">
+          Effecten in procentpunt kans t.o.v. de trainingsachtergrondpopulatie.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function InfoIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M12 11v6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <circle cx="12" cy="8" r="1.1" fill="currentColor" />
+    </svg>
+  );
+}
+
 function MyHomeScreen({
   notify,
   hub,
   setHub,
+  onOpenLoan,
 }: {
   notify: (m: string) => void;
   hub: HubId;
   setHub: (h: HubId) => void;
+  onOpenLoan: (product?: LoanProductId) => void;
 }) {
   const [planTab, setPlanTab] = useState<(typeof homePlanTabs)[number]>("Kopen");
 
@@ -551,7 +951,7 @@ function MyHomeScreen({
 
             <section className="mk-section">
               <p className="section-bullet">Bekijk hoeveel je kunt lenen</p>
-              <button className="tl-card mortgage" onClick={() => notify("Hypotheek simuleren")}>
+              <button className="tl-card mortgage" onClick={() => onOpenLoan("hypotheek")}>
                 <span className="tl-icon">
                   <HandCoinsIcon />
                 </span>
@@ -812,7 +1212,7 @@ function AanbodScreen({
   );
 }
 
-const zakelijkOrgs = ["Alle", "UGENT SAILING VZW", "CENEKA VZW"] as const;
+const zakelijkOrgs = ["Alle", "UGENT SAILING VZW", "GERTJAN VZW"] as const;
 
 const zakelijkAccounts = [
   {
@@ -824,14 +1224,14 @@ const zakelijkAccounts = [
   },
   {
     id: "z2",
-    org: "CENEKA VZW",
+    org: "GERTJAN VZW",
     iban: "BE69 7350 1234 5678",
     amount: "0,00",
     type: "current" as const,
   },
   {
     id: "z3",
-    org: "CENEKA VZW",
+    org: "GERTJAN VZW",
     iban: "BE23 7441 0299 4791",
     amount: "120,00",
     type: "savings" as const,
@@ -862,8 +1262,8 @@ const beleggenProducts = [
   },
   {
     id: "b2",
-    title: "CENEKA VZW",
-    subtitle: "CENEKA VZW",
+    title: "GERTJAN VZW",
+    subtitle: "GERTJAN VZW",
     amount: "29 452,25",
     product: "KBC-Spaarrekening PLUS",
     iban: "BE23 7441 0299 4791",
