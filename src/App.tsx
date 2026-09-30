@@ -1,0 +1,828 @@
+import { useEffect, useRef, useState, type ReactElement, type RefObject } from "react";
+import "./App.css";
+
+type TabId = "start" | "mijnkbc" | "beleggen" | "zakelijk" | "aanbod";
+
+const accounts = [
+  {
+    id: "kate",
+    kind: "kate" as const,
+    name: "Kate Coins",
+    balance: "0,00 KTC",
+    color: "kate",
+  },
+  {
+    id: "personal",
+    kind: "account" as const,
+    name: "AERTS ROBIN",
+    balance: "7,15 EUR",
+    color: "cyan",
+  },
+  {
+    id: "business",
+    kind: "account" as const,
+    name: "CENEKA VZW",
+    balance: "0,00 EUR",
+    color: "navy",
+  },
+];
+
+const forYou = [
+  {
+    id: "f1",
+    type: "action" as const,
+    title: "Te behandelen",
+    body: "Je hebt 1 of meer te behandelen acties. Even kijken?",
+  },
+  {
+    id: "f2",
+    type: "kate" as const,
+    title: "Kate tip",
+    body: "Energieprijzen blijven hoog. Bespaar warmte thuis — isoleer, ventileer slim en check je verbruik.",
+  },
+  {
+    id: "f3",
+    type: "data" as const,
+    title: "Gegevens updaten",
+    body: "Wanneer heb je je gegevens voor het laatst nagekeken? Update ze via Kate.",
+  },
+];
+
+const mijnAccounts = [
+  {
+    name: "AERTS ROBIN",
+    iban: "BE71 7350 7405 7969",
+    balance: "7,15 EUR",
+  },
+];
+
+const products = [
+  { id: "p1", label: "Rekeningen", icon: "wallet" },
+  { id: "p2", label: "Betaalmiddelen", icon: "card" },
+  { id: "p3", label: "Sparen en beleggen", icon: "piggy" },
+  { id: "p4", label: "Leningen", icon: "loan" },
+];
+
+const themes = [
+  { id: "t1", label: "MyMobility", color: "#0077c8", icon: "sign" },
+  { id: "t2", label: "MyHome", color: "#00aeef", icon: "home" },
+  { id: "t3", label: "Samen duurzamer", color: "#34c759", icon: "leaf" },
+  { id: "t4", label: "Zicht op geldzaken", color: "#ffcc00", icon: "bulb" },
+];
+
+type ForYouItem = (typeof forYou)[number];
+
+export default function App() {
+  const [tab, setTab] = useState<TabId>("start");
+  const [showPayments, setShowPayments] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const [time, setTime] = useState("19:11");
+  const [dismissed, setDismissed] = useState<string[]>([]);
+  const carouselRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const tick = () =>
+      setTime(
+        new Date().toLocaleTimeString("nl-BE", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      );
+    tick();
+    const id = window.setInterval(tick, 30_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+    const id = window.setTimeout(() => setToast(null), 2000);
+    return () => window.clearTimeout(id);
+  }, [toast]);
+
+  const notify = (msg: string) => setToast(msg);
+
+  return (
+    <div className="stage">
+      <div className="phone">
+        <div className="phone-bezel">
+          <div className="phone-screen">
+            <StatusBar time={time} battery={tab === "start" ? 24 : 23} />
+
+            {tab === "start" && (
+              <StartScreen
+                carouselRef={carouselRef}
+                showPayments={showPayments}
+                setShowPayments={setShowPayments}
+                forYou={forYou.filter((f) => !dismissed.includes(f.id))}
+                onDismiss={(id) => setDismissed((d) => [...d, id])}
+                notify={notify}
+              />
+            )}
+
+            {tab === "mijnkbc" && <MijnKbcScreen notify={notify} />}
+            {tab === "aanbod" && <AanbodScreen notify={notify} />}
+            {(tab === "beleggen" || tab === "zakelijk") && (
+              <PlaceholderScreen
+                tab={tab}
+                onBack={() => setTab("start")}
+              />
+            )}
+
+            {tab === "start" && (
+              <button className="fab" aria-label="Overschrijving" onClick={() => notify("Nieuwe overschrijving")}>
+                <TransferIcon />
+              </button>
+            )}
+
+            <BottomNav tab={tab} setTab={setTab} />
+
+            {toast && <div className="toast">{toast}</div>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatusBar({ time, battery }: { time: string; battery: number }) {
+  return (
+    <div className="status-bar">
+      <span className="status-time">{time}</span>
+      <div className="status-right">
+        <SignalIcon />
+        <WifiIcon />
+        <span className="battery-pct">{battery}%</span>
+        <BatteryIcon />
+      </div>
+    </div>
+  );
+}
+
+function StartScreen({
+  carouselRef,
+  showPayments,
+  setShowPayments,
+  forYou: items,
+  onDismiss,
+  notify,
+}: {
+  carouselRef: RefObject<HTMLDivElement | null>;
+  showPayments: boolean;
+  setShowPayments: (v: boolean | ((p: boolean) => boolean)) => void;
+  forYou: ForYouItem[];
+  onDismiss: (id: string) => void;
+  notify: (m: string) => void;
+}) {
+  return (
+    <>
+      <header className="top-bar start-bar">
+        <button className="circle-btn" aria-label="Instellingen" onClick={() => notify("Instellingen")}>
+          <GearIcon />
+        </button>
+        <div className="search-pill" onClick={() => notify("Kate openen")}>
+          <SearchIcon />
+          <span>Hoe kan ik je helpen?</span>
+          <span className="kate-chip">
+            <KateMark small />
+            Kate
+          </span>
+        </div>
+        <button className="circle-btn" aria-label="Meldingen" onClick={() => notify("Meldingen")}>
+          <BellIcon />
+          <span className="red-dot" />
+        </button>
+      </header>
+
+      <main className="scroll">
+        <div className="chips">
+          <button className="chip active" aria-label="Rekeningen">
+            <WalletIcon />
+          </button>
+          <button className="chip" onClick={() => notify("MyNWS")}>
+            <NewsIcon />
+            MyNWS
+          </button>
+          <button className="chip" onClick={() => notify("MyHome")}>
+            <HomeIcon />
+            MyHome
+          </button>
+          <button className="chip" onClick={() => notify("MyMobility")}>
+            <SignIcon />
+            MyMobility
+          </button>
+        </div>
+
+        <div className="account-rail" ref={carouselRef}>
+          {accounts.map((a) => (
+            <article key={a.id} className={`acct-card ${a.color}`} onClick={() => notify(a.name)}>
+              <div className="acct-top">
+                {a.kind === "kate" ? <KateMark /> : <WalletLargeIcon />}
+                {a.kind === "account" && (
+                  <button
+                    className="edit-btn"
+                    aria-label="Bewerken"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      notify("Rekening bewerken");
+                    }}
+                  >
+                    <PencilIcon />
+                  </button>
+                )}
+                <div className="acct-pattern" aria-hidden />
+              </div>
+              <div className="acct-bottom">
+                <p className="acct-name">{a.name}</p>
+                <p className="acct-bal">{a.balance}</p>
+                {a.kind === "kate" && <div className="kate-progress" />}
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <button className="show-payments" onClick={() => setShowPayments((v) => !v)}>
+          <ChevronDown open={showPayments} />
+          {showPayments ? "Verberg betalingen" : "Toon betalingen"}
+        </button>
+
+        {showPayments && (
+          <ul className="payments-preview">
+            <li>
+              <span>Colruyt Leuven</span>
+              <span>−54,32 EUR</span>
+            </li>
+            <li>
+              <span>Loon Acme BV</span>
+              <span className="pos">+2 850,00 EUR</span>
+            </li>
+            <li>
+              <span>Spotify</span>
+              <span>−17,99 EUR</span>
+            </li>
+          </ul>
+        )}
+
+        <section className="voor-jou">
+          <div className="section-row">
+            <h2>Voor jou</h2>
+            <button className="link" onClick={() => notify("Alle communicatie")}>
+              Alle communicatie
+            </button>
+          </div>
+
+          <div className="feed">
+            {items.map((item) => (
+              <article key={item.id} className={`feed-card ${item.type}`} onClick={() => notify(item.title)}>
+                <span className="feed-dot" />
+                {item.type !== "action" && (
+                  <button
+                    className="feed-close"
+                    aria-label="Sluiten"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDismiss(item.id);
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
+                <div className="feed-icon">
+                  {item.type === "action" && <BellRedIcon />}
+                  {item.type === "kate" && <HomeCoinsIcon />}
+                  {item.type === "data" && <BarsIcon />}
+                </div>
+                <div className="feed-body">
+                  {item.type === "action" && <p className="feed-title alert">{item.title}</p>}
+                  {item.type === "kate" && (
+                    <p className="feed-title kate-label">
+                      <KateMark tiny /> {item.title}
+                    </p>
+                  )}
+                  {item.type === "data" && <p className="feed-title">{item.title}</p>}
+                  <p className="feed-text">{item.body}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <div className="scroll-pad" />
+      </main>
+    </>
+  );
+}
+
+function MijnKbcScreen({ notify }: { notify: (m: string) => void }) {
+  return (
+    <>
+      <header className="top-bar page-bar">
+        <button className="circle-btn" aria-label="Instellingen" onClick={() => notify("Instellingen")}>
+          <GearIcon />
+        </button>
+        <h1 className="page-title">Mijn KBC</h1>
+        <div className="page-actions">
+          <button className="circle-btn" aria-label="Meldingen" onClick={() => notify("Meldingen")}>
+            <BellIcon />
+            <span className="red-dot" />
+          </button>
+          <button className="kate-round" aria-label="Kate" onClick={() => notify("Kate")}>
+            <KateMark />
+          </button>
+        </div>
+      </header>
+
+      <main className="scroll page-scroll">
+        <section className="mk-section">
+          <div className="section-row">
+            <h2>Rekeningen</h2>
+            <button className="nieuw" onClick={() => notify("Nieuwe rekening")}>
+              <span className="nieuw-plus">+</span> Nieuw
+            </button>
+          </div>
+          {mijnAccounts.map((a) => (
+            <button key={a.iban} className="mk-row" onClick={() => notify(a.name)}>
+              <span className="mk-icon blue">
+                <WalletIcon />
+              </span>
+              <span className="mk-meta">
+                <span className="mk-name">{a.name}</span>
+                <span className="mk-sub">{a.iban}</span>
+              </span>
+              <span className="mk-bal">{a.balance}</span>
+            </button>
+          ))}
+        </section>
+
+        <section className="mk-section">
+          <div className="section-row">
+            <h2>Betaalmiddelen</h2>
+            <button className="nieuw" onClick={() => notify("Nieuw betaalmiddel")}>
+              <span className="nieuw-plus">+</span> Nieuw
+            </button>
+          </div>
+          <button className="mk-row has-badge" onClick={() => notify("KBC-Debetkaart")}>
+            <span className="nieuw-badge">Nieuw</span>
+            <span className="mk-icon blue">
+              <BancontactIcon />
+            </span>
+            <span className="mk-meta">
+              <span className="mk-name">KBC-Debetkaart</span>
+              <span className="mk-sub">AERTS ROBIN</span>
+              <span className="mk-sub">**** 2248</span>
+            </span>
+          </button>
+        </section>
+
+        <section className="mk-section">
+          <div className="section-row">
+            <h2>Kate Coins</h2>
+          </div>
+          <button className="mk-row" onClick={() => notify("Kate Coins")}>
+            <span className="mk-icon kate-bg">
+              <KateMark />
+            </span>
+            <span className="mk-meta">
+              <span className="mk-name">Kate Coins</span>
+            </span>
+            <span className="mk-bal">0,00 KTC</span>
+          </button>
+        </section>
+
+        <section className="mk-section">
+          <div className="section-row">
+            <h2>Beleggingen</h2>
+            <button className="nieuw" onClick={() => notify("Nieuwe belegging")}>
+              <span className="nieuw-plus">+</span> Nieuw
+            </button>
+          </div>
+          <button className="mk-row" onClick={() => notify("Beleggingen")}>
+            <span className="mk-icon ghost">
+              <PiggyOutlineIcon />
+            </span>
+            <span className="mk-meta">
+              <span className="mk-name soft">Spaar- en beleggingsproducten van anderen</span>
+            </span>
+          </button>
+        </section>
+
+        <section className="mk-section">
+          <div className="section-row">
+            <h2>Leningen</h2>
+            <button className="nieuw" onClick={() => notify("Nieuwe lening")}>
+              <span className="nieuw-plus">+</span> Nieuw
+            </button>
+          </div>
+        </section>
+
+        <div className="scroll-pad" />
+      </main>
+    </>
+  );
+}
+
+function AanbodScreen({ notify }: { notify: (m: string) => void }) {
+  return (
+    <>
+      <header className="top-bar page-bar">
+        <button className="circle-btn" aria-label="Instellingen" onClick={() => notify("Instellingen")}>
+          <GearIcon />
+        </button>
+        <h1 className="page-title">Aanbod</h1>
+        <div className="page-actions">
+          <button className="circle-btn" aria-label="Meldingen" onClick={() => notify("Meldingen")}>
+            <BellIcon />
+            <span className="red-dot" />
+          </button>
+          <button className="kate-round" aria-label="Kate" onClick={() => notify("Kate")}>
+            <KateMark />
+          </button>
+        </div>
+      </header>
+
+      <main className="scroll page-scroll">
+        <section className="mk-section">
+          <div className="section-row">
+            <h2>Je favorieten</h2>
+            <button className="ellipsis" aria-label="Meer" onClick={() => notify("Favorieten bewerken")}>
+              ···
+            </button>
+          </div>
+          <button className="fav-add" aria-label="Toevoegen" onClick={() => notify("Favoriet toevoegen")}>
+            +
+          </button>
+        </section>
+
+        <article className="promo" onClick={() => notify("Zakelijke kredietkaart")}>
+          <div className="promo-copy">
+            <p>Met de zakelijke kredietkaart van KBC onderneem je méér.</p>
+            <button
+              className="promo-cta"
+              onClick={(e) => {
+                e.stopPropagation();
+                notify("Vraag nu aan");
+              }}
+            >
+              Vraag nu aan
+            </button>
+          </div>
+          <div className="promo-media" aria-hidden>
+            <div className="promo-person" />
+          </div>
+        </article>
+
+        <section className="mk-section">
+          <div className="section-row">
+            <h2>KBC-Producten</h2>
+          </div>
+          <div className="tile-rail">
+            {products.map((p) => (
+              <button key={p.id} className="product-tile" onClick={() => notify(p.label)}>
+                <span className="product-icon">
+                  {p.icon === "wallet" && <WalletIcon />}
+                  {p.icon === "card" && <CardIcon />}
+                  {p.icon === "piggy" && <PiggyIcon />}
+                  {p.icon === "loan" && <LoanIcon />}
+                </span>
+                <span>{p.label}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="mk-section">
+          <div className="section-row">
+            <h2>Thema&apos;s</h2>
+            <button className="link" onClick={() => notify("Alle thema's")}>
+              Alles tonen
+            </button>
+          </div>
+          <div className="tile-rail">
+            {themes.map((t) => (
+              <button key={t.id} className="theme-tile" onClick={() => notify(t.label)}>
+                <span className="theme-icon" style={{ background: t.color }}>
+                  {t.icon === "sign" && <SignIcon />}
+                  {t.icon === "home" && <HomeIcon />}
+                  {t.icon === "leaf" && <LeafIcon />}
+                  {t.icon === "bulb" && <BulbIcon />}
+                </span>
+                <span>{t.label}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <div className="scroll-pad" />
+      </main>
+    </>
+  );
+}
+
+function PlaceholderScreen({ tab, onBack }: { tab: TabId; onBack: () => void }) {
+  const title = tab === "beleggen" ? "Beleggen" : "Zakelijk";
+  return (
+    <>
+      <header className="top-bar page-bar">
+        <div className="circle-btn ghost" />
+        <h1 className="page-title">{title}</h1>
+        <div className="page-actions" />
+      </header>
+      <main className="scroll placeholder">
+        <p>Deze rubriek volgt later in de replica.</p>
+        <button className="back-btn" onClick={onBack}>
+          Terug naar Start
+        </button>
+      </main>
+    </>
+  );
+}
+
+function BottomNav({ tab, setTab }: { tab: TabId; setTab: (t: TabId) => void }) {
+  const items: { id: TabId; label: string; Icon: () => ReactElement }[] = [
+    { id: "start", label: "Start", Icon: WalletIcon },
+    { id: "mijnkbc", label: "Mijn KBC", Icon: ListIcon },
+    { id: "beleggen", label: "Beleggen", Icon: PiggyIcon },
+    { id: "zakelijk", label: "Zakelijk", Icon: BriefcaseIcon },
+    { id: "aanbod", label: "Aanbod", Icon: StackIcon },
+  ];
+  return (
+    <nav className="bottom-nav">
+      {items.map(({ id, label, Icon }) => (
+        <button key={id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}>
+          <span className="nav-icon">
+            <Icon />
+          </span>
+          <span>{label}</span>
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+/* ——— Icons ——— */
+
+function KateMark({ small, tiny }: { small?: boolean; tiny?: boolean }) {
+  const size = tiny ? 14 : small ? 18 : 28;
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
+      <circle cx="16" cy="16" r="16" fill="#00aeef" />
+      <path
+        d="M10 10.5h4.2c2.6 0 4.2 1.4 4.2 3.5 0 1.5-.8 2.6-2.1 3.1L20.5 22h-3.2l-3.8-4.6H13V22h-3V10.5zm3 5.6h1.1c1.1 0 1.7-.5 1.7-1.4s-.6-1.4-1.7-1.4H13v2.8z"
+        fill="#fff"
+      />
+    </svg>
+  );
+}
+
+function GearIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 2.5v2.2M12 19.3v2.2M4.2 12H2M22 12h-2.2M5.6 5.6l1.6 1.6M16.8 16.8l1.6 1.6M18.4 5.6l-1.6 1.6M7.2 16.8l-1.6 1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function BellIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+      <path d="M6 9a6 6 0 0 1 12 0c0 7 3 7 3 7H3s3 0 3-7" />
+      <path d="M10 19a2 2 0 0 0 4 0" />
+    </svg>
+  );
+}
+
+function BellRedIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#e30613" strokeWidth="1.8">
+      <path d="M6 9a6 6 0 0 1 12 0c0 7 3 7 3 7H3s3 0 3-7" />
+      <path d="M10 19a2 2 0 0 0 4 0" />
+    </svg>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.5-3.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function WalletIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+      <rect x="3" y="6" width="18" height="13" rx="2.5" />
+      <path d="M3 10h18M16 13.5h2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function WalletLargeIcon() {
+  return (
+    <svg className="wallet-lg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="1.4">
+      <rect x="3" y="6" width="18" height="13" rx="2.5" />
+      <path d="M3 10h18M16 13.5h2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function NewsIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+      <path d="M4 5h12a2 2 0 0 1 2 2v12H6a2 2 0 0 1-2-2V5Z" />
+      <path d="M8 9h6M8 13h4" />
+    </svg>
+  );
+}
+
+function HomeIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+      <path d="m4 11 8-7 8 7v8a1 1 0 0 1-1 1h-5v-5H10v5H5a1 1 0 0 1-1-1v-8Z" />
+    </svg>
+  );
+}
+
+function SignIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+      <path d="M12 3v18M7 7h8l-2 3 2 3H7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function PencilIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="m4 20 4.5-1L20 7.5 16.5 4 5 15.5 4 20Z" />
+    </svg>
+  );
+}
+
+function ChevronDown({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      style={{ transform: open ? "rotate(180deg)" : undefined, transition: "transform .2s" }}
+    >
+      <path d="m6 9 6 6 6-6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function TransferIcon() {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+      <path d="M7 8h11M15 5l3 3-3 3M17 16H6M9 13l-3 3 3 3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ListIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M9 7h11M9 12h11M9 17h11" strokeLinecap="round" />
+      <circle cx="5" cy="7" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="5" cy="12" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="5" cy="17" r="1.2" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function PiggyIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+      <path d="M5 12c0-3.5 3-6 7-6 3.2 0 5.8 1.5 6.7 3.8L21 11v3h-1.2c-.4 1.5-1.3 2.7-2.8 3.4V19h-2v-1.2H9.5V19h-2v-1.8C5.8 16.2 5 14.3 5 12Z" />
+      <circle cx="9.5" cy="11.5" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function PiggyOutlineIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4">
+      <path d="M5 12c0-3.5 3-6 7-6 3.2 0 5.8 1.5 6.7 3.8L21 11v3h-1.2c-.4 1.5-1.3 2.7-2.8 3.4V19h-2v-1.2H9.5V19h-2v-1.8C5.8 16.2 5 14.3 5 12Z" />
+      <circle cx="16" cy="8" r="3" />
+    </svg>
+  );
+}
+
+function BriefcaseIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+      <rect x="3" y="7" width="18" height="13" rx="2" />
+      <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 12h18" />
+    </svg>
+  );
+}
+
+function StackIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+      <path d="m4 8 8-4 8 4-8 4-8-4Z" />
+      <path d="m4 12 8 4 8-4M4 16l8 4 8-4" />
+    </svg>
+  );
+}
+
+function BancontactIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <rect x="3" y="6" width="18" height="12" rx="2" stroke="#fff" strokeWidth="1.5" />
+      <path d="M7 12h4M14 12h3" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function CardIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <path d="M2 9h20" />
+    </svg>
+  );
+}
+
+function LoanIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <circle cx="12" cy="12" r="8" />
+      <path d="M12 8v8M9.5 10.5c.5-1 1.5-1.5 2.5-1.5s2 .6 2 1.8-1 1.7-2.5 2.1c-1.4.4-2.5.9-2.5 2.2S10.5 17 12 17s2-.5 2.5-1.2" />
+    </svg>
+  );
+}
+
+function LeafIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.7">
+      <path d="M5 19C5 11 11 5 19 5c0 8-6 14-14 14Z" />
+      <path d="M5 19c4-4 8-6 12-8" />
+    </svg>
+  );
+}
+
+function BulbIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.7">
+      <path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3 11c.5.4 1 1.2 1 2h4c0-.8.5-1.6 1-2a6 6 0 0 0-3-11Z" />
+    </svg>
+  );
+}
+
+function HomeCoinsIcon() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
+      <rect width="40" height="40" rx="10" fill="#1a3a4a" />
+      <path d="m10 20 10-8 10 8v10H10V20Z" stroke="#00aeef" strokeWidth="1.6" />
+      <circle cx="28" cy="14" r="5" fill="#ffcc00" opacity="0.9" />
+      <circle cx="31" cy="17" r="4" fill="#00aeef" opacity="0.85" />
+    </svg>
+  );
+}
+
+function BarsIcon() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
+      <circle cx="20" cy="20" r="18" fill="#1a3a5c" />
+      <rect x="8" y="12" width="24" height="3.5" rx="1.5" fill="#00aeef" />
+      <rect x="8" y="18.5" width="18" height="3.5" rx="1.5" fill="#34c759" />
+      <rect x="8" y="25" width="14" height="3.5" rx="1.5" fill="#ffcc00" />
+    </svg>
+  );
+}
+
+function SignalIcon() {
+  return (
+    <svg width="16" height="11" viewBox="0 0 18 12" fill="currentColor">
+      <rect x="0" y="8" width="3" height="4" rx="0.5" />
+      <rect x="5" y="5" width="3" height="7" rx="0.5" />
+      <rect x="10" y="2" width="3" height="10" rx="0.5" />
+      <rect x="15" y="0" width="3" height="12" rx="0.5" opacity="0.35" />
+    </svg>
+  );
+}
+
+function WifiIcon() {
+  return (
+    <svg width="14" height="11" viewBox="0 0 16 12" fill="none" stroke="currentColor" strokeWidth="1.4">
+      <path d="M1 4.5c3.8-3.5 10.2-3.5 14 0M3.5 7c2.5-2.2 6.5-2.2 9 0M6.2 9.4c1.4-1.1 2.2-1.1 3.6 0" strokeLinecap="round" />
+      <circle cx="8" cy="11" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function BatteryIcon() {
+  return (
+    <svg width="24" height="12" viewBox="0 0 28 14" fill="none">
+      <rect x="0.5" y="0.5" width="23" height="13" rx="3" stroke="currentColor" />
+      <rect x="2.5" y="2.5" width="8" height="9" rx="1.5" fill="currentColor" />
+      <path d="M25 4.5v5a2 2 0 0 0 0-5Z" fill="currentColor" />
+    </svg>
+  );
+}
